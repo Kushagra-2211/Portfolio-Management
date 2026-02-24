@@ -154,11 +154,109 @@ print('Portfolio Final Value = ${:.2f}'.format(portfolio_metrics[4]))
 # Portfolio Final Value = $31300499.52
 
 #%%
-   
+# Defining a setup for Morte Carlo Simulations
+# Initializing placeholders to store weights, sharpe ratios, expected return and vol, and ROI
+# Calling simulation_engine function to fill the placeholders
+
+
+# # Placeholder to store weights
+# weights_mc = np.zeros((sim_runs, n))
+
+# # Placeholder to store sharpe ratios
+# sharpe_ratio_mc = np.zeros(sim_runs)
+
+# # Placeholder to store expected returns
+# expected_return_mc = np.zeros(sim_runs)
+
+# # Placeholder to store expected volatility
+# expected_vol_mc = np.zeros(sim_runs)
+
+# # Placeholder to store return on investment
+# roi_mc = np.zeros(sim_runs)
+
+# # Placeholder to store final portfolio value
+# portfolio_end_value = np.zeros(sim_runs)
+
+def monte_carlo_runs(sim_runs, df, initial_investment, rf):
     
+    n = len(df.columns)
+    
+    weights_mc = np.zeros((sim_runs, n))
+    sharpe_ratio_mc = np.zeros(sim_runs)
+    expected_return_mc = np.zeros(sim_runs)
+    expected_vol_mc = np.zeros(sim_runs)
+    roi_mc = np.zeros(sim_runs)
+    portfolio_end_value = np.zeros(sim_runs)
+    
+    for i in range(sim_runs):
+        weights = portfolio_weight_generation(n)
+        
+        weights_mc[i, :] = weights
+        
+        expected_return_mc[i], expected_vol_mc[i], sharpe_ratio_mc[i], roi_mc[i], portfolio_end_value[i] = simulation_engine(df, weights, initial_investment, rf)
+    
+    sharpe_ratio_max = sharpe_ratio_mc.max()
+    sim_run_number = sharpe_ratio_mc.argmax()
+    weights_max = weights_mc[sim_run_number, :]
+    
+    sim_out_df = pd.DataFrame({
+        "Volatility": expected_vol_mc,
+        "Portfolio_Return": expected_return_mc,
+        "Sharpe_Ratio": sharpe_ratio_mc,
+        "ROI": roi_mc,
+        "Final_Value": portfolio_end_value
+    })
+    
+    return weights_max, sharpe_ratio_max, sim_out_df
 
+#%% 
 
+# no.of simulation runs
+sim_runs = 10000
+initial_investment = 10000000
+rf = 0.03
+df = close_price_df
 
+weights_max, sr_max, sim_out_df = monte_carlo_runs(sim_runs, df, initial_investment, rf)
+
+portfolio_metrics = simulation_engine(df, weights_max, initial_investment, rf)
+print('Best Portfolio Metrics Based on {} Monte Carlo Simulation Runs:'.format(sim_runs))
+print('Weights for best portfolio metrics = {}'.format(weights_max))
+print('Max Expected Portfolio Annual Return = {:.2f}%'.format(portfolio_metrics[0] * 100))
+print('Max Portfolio Standard Deviation (Volatility) = {:.2f}%'.format(portfolio_metrics[1] * 100))
+print('Max Sharpe Ratio = {:.2f}'.format(portfolio_metrics[2]))
+print('Max Return on Investment = {:.2f}%'.format(portfolio_metrics[3]))
+print('Max Portfolio Final Value = ${:.2f}'.format(portfolio_metrics[4]))   
+    
+## Output   
+# Best Portfolio Metrics Based on 10000 Monte Carlo Simulation Runs:
+# Weights for best portfolio metrics = [0.27482217 0.01623358 0.40617641 0.05014484 0.005778   0.07666848
+#  0.02152889 0.00935884 0.09456712 0.04472166]
+# Max Expected Portfolio Annual Return = 19.94%
+# Max Portfolio Standard Deviation (Volatility) = 20.30%
+# Max Sharpe Ratio = 0.83
+# Max Return on Investment = 336.23%
+# Max Portfolio Final Value = $43622552.14
+
+#%%
+# Plotting Efficient Frontier
+
+# sim_runs = 10000
+# initial_investment = 10000000
+# rf = 0.03
+# df = close_price_df
+
+# weights_max, sr_max, sim_out_df = monte_carlo_runs(sim_runs, df, initial_investment, rf)
+
+# portfolio_metrics = simulation_engine(df, weights_max, initial_investment, rf)
+
+import plotly.graph_objects as go
+
+fig = px.scatter(sim_out_df, x = 'Volatility', y = 'Portfolio_Return', color = 'Sharpe_Ratio', size = 'Sharpe_Ratio', hover_data = ['Sharpe_Ratio'] )
+fig.add_trace(go.Scatter(x = [portfolio_metrics[1]], y = [portfolio_metrics[0]], mode = 'markers', name = 'Optimal Point', marker = dict(size=[40], color = 'red')))
+fig.update_layout(coloraxis_colorbar = dict(y = 0.7, dtick = 5))
+fig.update_layout({'plot_bgcolor': "white"})
+fig.show()
 
 
 
